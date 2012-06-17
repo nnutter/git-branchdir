@@ -64,10 +64,21 @@ branchdir_path() {
     echo "$(branchdir_basedir)-$branchname"
 }
 
+register_branchdir() {
+    branchname="$1"
+    git config --add branchdir.branch $branchname
+}
+
+unregister_branchdir() {
+    branchname="$1"
+    git config --unset branchdir.branch ^$branchname$
+}
+
 branchdir_delete() {
     branchname="$1"
     cd "$(branchdir_basedir)"
     git branch -d "$branchname"
+    unregister_branchdir $branchname
     rm -rf "$(branchdir_path $branchname)"
 }
 
@@ -76,6 +87,8 @@ branchdir_move() {
     newbranch="$2"
     git branch -m "$oldbranch" "$newbranch"
     mv "$(branchdir_path $oldbranch)" "$(branchdir_path $newbranch)"
+    unregister_branchdir $oldbranch
+    register_branchdir $newbranch
 }
 
 branchdir_new() {
@@ -83,6 +96,7 @@ branchdir_new() {
     startpoint="$2"
     git branch "$branchname" "$startpoint"
     git-new-workdir "$(branchdir_basedir)" "$(branchdir_path $branchname)" "$branchname"
+    register_branchdir $branchname
     echo "New branchdir: $(branchdir_path $branchname)"
 }
 
