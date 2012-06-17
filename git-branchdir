@@ -77,7 +77,11 @@ branchdir_basedir() {
 
 branchdir_path() {
     branchname="$1"
-    echo "$(branchdir_basedir)-${branchname//\//-}"
+    if [ "$branchname" == "master" ]; then
+        echo "$(branchdir_basedir)"
+    else
+        echo "$(branchdir_basedir)-${branchname//\//-}"
+    fi
 }
 
 register_branchdir() {
