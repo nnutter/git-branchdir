@@ -62,8 +62,8 @@ branchdir_path() {
 
 branchdir_delete() {
     branchname="$1"
-    git branch -d "$branchname"
     cd "$(branchdir_basedir)"
+    git branch -d "$branchname"
     rm -rf "$(branchdir_path $branchname)"
 }
 
