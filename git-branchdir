@@ -1,0 +1,84 @@
+#!/usr/bin/env bash
+
+set -o pipefail
+set -o errexit
+
+if [ $# -eq 0 ]; then
+    set -- -h
+fi
+
+# git branch --help:
+# git branch [--color[=<when>] | --no-color] [-r | -a]
+#        [--list] [-v [--abbrev=<length> | --no-abbrev]]
+#        [(--merged | --no-merged | --contains) [<commit>]] [<pattern>...]
+# git branch [--set-upstream | --track | --no-track] [-l] [-f] <branchname> [<start-point>]
+# git branch (-m | -M) [<oldbranch>] <newbranch>
+# git branch (-d | -D) [-r] <branchname>...
+# git branch --edit-description [<branchname>]
+
+OPTIONS_SPEC="\
+git branchdir -m [<oldbranch>] <newbranch>
+git branchdir -d <branchname>...
+git branchdir <branchname> [<start-point>]
+--
+h,help  show the help
+m       move (rename) the branchdir
+d       delete the branchdir
+debug   enable debug messages
+"
+source "$(git --exec-path)/git-sh-setup"
+
+action=new
+debug=
+
+while [ $# -gt 0 ]; do
+    opt="$1"
+    shift
+    case "$opt" in
+        --debug) debug=1 ;;
+        -d) action=delete ;;
+        -m) action=move ;;
+        --) break ;;
+         *) usage ;;
+    esac
+done
+
+if [ -n "$debug" ]; then
+    echo "Arguments: $*"
+fi
+
+case "$action" in
+    delete)
+        case $# in
+            1) branchname="$1" ;;
+            *) usage ;;
+        esac
+        echo "delete $branchname"
+        ;;
+    move)
+        case $# in
+            2)  oldbranch="$1"
+                newbranch="$2"
+                ;;
+            1)  oldbranch="<current_branch>"
+                newbranch="$1"
+                ;;
+            0)  die "Missing required argument" ;;
+            *)  die "Too many arguments" ;;
+        esac
+        echo "move $oldbranch $newbranch"
+        ;;
+    new)
+        case $# in
+            2)  branchname="$1"
+                startpoint="$2"
+                ;;
+            1)  branchname="$1"
+                startpoint="HEAD"
+                ;;
+            0)  die "Missing required argument" ;;
+            *)  die "Too many arguments" ;;
+        esac
+        echo "new $branchname $startpoint"
+        ;;
+esac
