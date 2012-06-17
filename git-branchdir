@@ -61,7 +61,7 @@ branchdir_basedir() {
 
 branchdir_path() {
     branchname="$1"
-    echo "$(branchdir_basedir)-$branchname"
+    echo "$(branchdir_basedir)-${branchname//\//-}"
 }
 
 register_branchdir() {
