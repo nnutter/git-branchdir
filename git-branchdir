@@ -98,24 +98,42 @@ branchdir_list() {
     git config --get-all branchdir.branch
 }
 
+branchdir_exists() {
+    branchname="$1"
+    branchdir_list | grep -q -P "^$branchname$"
+    return $?
+}
+
 branchdir_upbase() {
     git pull --rebase
 }
 
 branchdir_merge() {
     sourcebranch="$1"
+    if ! branchdir_exists $sourcebranch; then
+        die "source branchdir ($sourcebranch) does not exist"
+    fi
     git merge --no-ff $sourcebranch
 }
 
 branchdir_publish() {
     sourcebranch="$1"
     targetbranch="$2"
+    if ! branchdir_exists $sourcebranch; then
+        die "source branchdir ($sourcebranch) does not exist"
+    fi
+    if ! branchdir_exists $targetbranch; then
+        die "target branchdir ($targetbranch) does not exist"
+    fi
     cd "$(branchdir_path $targetbranch)"
     branchdir_merge $sourcebranch
 }
 
 branchdir_delete() {
     branchname="$1"
+    if ! branchdir_exists $branchname; then
+        die "branchdir ($branchname) does not exist"
+    fi
     cd "$(branchdir_basedir)"
     git branch -d "$branchname"
     unregister_branchdir $branchname
@@ -125,6 +143,9 @@ branchdir_delete() {
 branchdir_move() {
     oldbranch="$1"
     newbranch="$2"
+    if ! branchdir_exists $oldbranch; then
+        die "old branchdir ($oldbranch) does not exist"
+    fi
     git branch -m "$oldbranch" "$newbranch"
     mv "$(branchdir_path $oldbranch)" "$(branchdir_path $newbranch)"
     unregister_branchdir $oldbranch
@@ -134,6 +155,9 @@ branchdir_move() {
 branchdir_new() {
     branchname="$1"
     startpoint="$2"
+    if branchdir_exists $branchname; then
+        die "branchdir ($branchname) already exists"
+    fi
     git branch "$branchname" "$startpoint"
     git-new-workdir "$(branchdir_basedir)" "$(branchdir_path $branchname)" "$branchname"
     register_branchdir $branchname
@@ -159,6 +183,7 @@ case "$ACTION" in
         case $# in
             2) sourcebranch="$1"; targetbranch="$2" ;;
             1) sourcebranch="$(current_branch)"; targetbranch="$1" ;;
+            0) sourcebranch="$(current_branch)"; targetbranch="master" ;;
             *) usage ;;
         esac
         branchdir_publish $sourcebranch $targetbranch
@@ -198,6 +223,8 @@ case "$ACTION" in
         if [ -z "$(branchdir_basedir)" ]; then
             branchdir_basedir "$(repo_basedir)"
         fi
-        branchdir_new "$branchname" "$startpoint"
+        if ! branchdir_exists $branchname; then
+            branchdir_new "$branchname" "$startpoint"
+        fi
         ;;
 esac
