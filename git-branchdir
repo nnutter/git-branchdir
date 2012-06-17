@@ -17,35 +17,49 @@ fi
 # git branch --edit-description [<branchname>]
 
 OPTIONS_SPEC="\
-git branchdir -m [<oldbranch>] <newbranch>
-git branchdir -d <branchname>...
-git branchdir <branchname> [<start-point>]
+git-branchdir upbase
+git-branchdir merge [-d] <sourcebranch>
+git-branchdir publish [-d] [<sourcebranch>] <targetbranch>
+git-branchdir move [<oldbranch>] <newbranch>
+git-branchdir delete <branchname>
+git-branchdir <branchname> [<start-point>]
 --
 h,help  show the help
-m       move (rename) the branchdir
-d       delete the branchdir
+d       delete the branchdir after
 debug   enable debug messages
 "
 source "$(git --exec-path)/git-sh-setup"
 
 ACTION=new
 DEBUG=
+OPT_DELETE=
 
 while [ $# -gt 0 ]; do
     opt="$1"
     shift
     case "$opt" in
         --debug) DEBUG=1 ;;
-        -d) ACTION=delete ;;
-        -m) ACTION=move ;;
+        -d) OPT_DELETE=1 ;;
         --) break ;;
-         *) usage ;;
+        *) usage ;;
     esac
 done
+
+case $1 in
+    upbase) ACTION=upbase; shift ;;
+    merge) ACTION=merge; shift ;;
+    publish) ACTION=publish; shift ;;
+    move) ACTION=move; shift ;;
+    delete) ACTION=delete; shift ;;
+esac
 
 if [ -n "$DEBUG" ]; then
     echo "Arguments: $*"
 fi
+
+current_branch(){
+    git branch | grep ^\* | sed 's/^\* //'
+}
 
 repo_basedir() {
     git rev-parse --show-toplevel
@@ -72,6 +86,22 @@ register_branchdir() {
 unregister_branchdir() {
     branchname="$1"
     git config --unset branchdir.branch ^$branchname$
+}
+
+branchdir_upbase() {
+    git pull --rebase
+}
+
+branchdir_merge() {
+    sourcebranch="$1"
+    git merge --no-ff $sourcebranch
+}
+
+branchdir_publish() {
+    sourcebranch="$1"
+    targetbranch="$2"
+    cd "$(branchdir_path $targetbranch)"
+    branchdir_merge $sourcebranch
 }
 
 branchdir_delete() {
@@ -101,6 +131,26 @@ branchdir_new() {
 }
 
 case "$ACTION" in
+    upbase)
+        branchdir_upbase
+        ;;
+    merge)
+        case $# in
+            1) sourcebranch="$1" ;;
+            *) usage ;;
+        esac
+        branchdir_merge $sourcebranch
+        [ -n "$OPT_DELETE" ] && branchdir_delete $sourcebranch
+        ;;
+    publish)
+        case $# in
+            2) sourcebranch="$1"; targetbranch="$2" ;;
+            1) sourcebranch="$(current_branch)"; targetbranch="$1" ;;
+            *) usage ;;
+        esac
+        branchdir_publish $sourcebranch $targetbranch
+        [ -n "$OPT_DELETE" ] && branchdir_delete $sourcebranch
+        ;;
     delete)
         case $# in
             1) branchname="$1" ;;
@@ -113,7 +163,7 @@ case "$ACTION" in
             2)  oldbranch="$1"
                 newbranch="$2"
                 ;;
-            1)  oldbranch="<current_branch>"
+            1)  oldbranch="$(current_branch)"
                 newbranch="$1"
                 ;;
             0)  die "Missing required argument" ;;
