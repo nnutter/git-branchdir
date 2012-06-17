@@ -79,7 +79,7 @@ branchdir_new() {
     startpoint="$2"
     git branch "$branchname" "$startpoint"
     git-new-workdir "$(branchdir_basedir)" "$(branchdir_path $branchname)" "$branchname"
-    cd "$(branchdir_path $branchname)"
+    echo "New branchdir: $(branchdir_path $branchname)"
 }
 
 case "$ACTION" in
