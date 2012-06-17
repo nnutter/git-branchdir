@@ -47,6 +47,10 @@ if [ -n "$DEBUG" ]; then
     echo "Arguments: $*"
 fi
 
+repo_basedir() {
+    git rev-parse --show-toplevel
+}
+
 branchdir_basedir() {
     if [ $# -eq 0 ]; then
         git config branchdir.base
@@ -115,7 +119,7 @@ case "$ACTION" in
             *)  die "Too many arguments" ;;
         esac
         if [ -z "$(branchdir_basedir)" ]; then
-            branchdir_basedir "$(git rev-parse --show-toplevel)"
+            branchdir_basedir "$(repo_basedir)"
         fi
         branchdir_new "$branchname" "$startpoint"
         ;;
