@@ -1,4 +1,4 @@
 git-branchdir
 =============
 
-Bazaar style branches in Git.
+Bazaar-like branches in Git.
