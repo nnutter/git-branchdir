@@ -17,6 +17,7 @@ fi
 # git branch --edit-description [<branchname>]
 
 OPTIONS_SPEC="\
+git-branchdir list
 git-branchdir upbase
 git-branchdir merge [-d] <sourcebranch>
 git-branchdir publish [-d] [<sourcebranch>] <targetbranch>
@@ -46,6 +47,7 @@ while [ $# -gt 0 ]; do
 done
 
 case $1 in
+    list) ACTION=list; shift ;;
     upbase) ACTION=upbase; shift ;;
     merge) ACTION=merge; shift ;;
     publish) ACTION=publish; shift ;;
@@ -86,6 +88,10 @@ register_branchdir() {
 unregister_branchdir() {
     branchname="$1"
     git config --unset branchdir.branch ^$branchname$
+}
+
+branchdir_list() {
+    git config --get-all branchdir.branch
 }
 
 branchdir_upbase() {
@@ -131,6 +137,9 @@ branchdir_new() {
 }
 
 case "$ACTION" in
+    list)
+        branchdir_list
+        ;;
     upbase)
         branchdir_upbase
         ;;
