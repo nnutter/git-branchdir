@@ -28,32 +28,69 @@ debug   enable debug messages
 "
 source "$(git --exec-path)/git-sh-setup"
 
-action=new
-debug=
+ACTION=new
+DEBUG=
 
 while [ $# -gt 0 ]; do
     opt="$1"
     shift
     case "$opt" in
-        --debug) debug=1 ;;
-        -d) action=delete ;;
-        -m) action=move ;;
+        --debug) DEBUG=1 ;;
+        -d) ACTION=delete ;;
+        -m) ACTION=move ;;
         --) break ;;
          *) usage ;;
     esac
 done
 
-if [ -n "$debug" ]; then
+if [ -n "$DEBUG" ]; then
     echo "Arguments: $*"
 fi
 
-case "$action" in
+branchdir_basedir() {
+    if [ $# -eq 0 ]; then
+        git config branchdir.base
+    else
+        git config --add branchdir.base "$1"
+    fi
+}
+
+branchdir_delete() {
+    branchname="$1"
+    BASEDIR=$(branchdir_basedir)
+    BRANCH_DIR="$BASEDIR/$branchname"
+    git branch -d "$branchname"
+    cd "$BASEDIR"
+    rm -rf "$BRANCH_DIR"
+}
+
+branchdir_move() {
+    oldbranch="$1"
+    newbranch="$2"
+    BASEDIR=$(branchdir_basedir)
+    OLD_BRANCH_DIR="$BASEDIR/$oldbranch"
+    NEW_BRANCH_DIR="$BASEDIR/$newbranch"
+    git branch -m "$1" "$2"
+    mv "$OLD_BRANCH_DIR" "$NEW_BRANCH_DIR"
+}
+
+branchdir_new() {
+    branchname="$1"
+    startpoint="$2"
+    BASEDIR=$(branchdir_basedir)
+    BRANCH_DIR="$BASEDIR/$branchname"
+    git branch "$branchname" "$startpoint"
+    git-new-workdir "$BASEDIR" "$BRANCH_DIR" "$branchname"
+    cd "$BRANCH_DIR"
+}
+
+case "$ACTION" in
     delete)
         case $# in
             1) branchname="$1" ;;
             *) usage ;;
         esac
-        echo "delete $branchname"
+        branchdir_delete "$branchname"
         ;;
     move)
         case $# in
@@ -66,7 +103,7 @@ case "$action" in
             0)  die "Missing required argument" ;;
             *)  die "Too many arguments" ;;
         esac
-        echo "move $oldbranch $newbranch"
+        branchdir_move "$oldbranch" "$newbranch"
         ;;
     new)
         case $# in
@@ -79,6 +116,9 @@ case "$action" in
             0)  die "Missing required argument" ;;
             *)  die "Too many arguments" ;;
         esac
-        echo "new $branchname $startpoint"
+        if [ -z "$(branchdir_basedir)" ]; then
+            branchdir_basedir "$(git rev-parse --show-toplevel)"
+        fi
+        branchdir_new "$branchname" "$startpoint"
         ;;
 esac
