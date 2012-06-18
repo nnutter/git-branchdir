@@ -12,6 +12,7 @@ install:
 	chmod 0755 $(GIT_CORE)/$(NAME)*
 	@echo "(Optional) Source gcd.sh in your .bashrc to install the 'gcd' function to easily change directories between branchdirs."
 	@echo "(Optional) Source git-branchdir-completion.sh in your .bashrc to add tab completion for 'git branchdir'."
+	@echo "(Optional) Add Git alias for 'git branchdir', e.g. \`git config --global alias.bd branchdir\`."
 
 uninstall:
 	rm -f $(GIT_CORE)/$(NAME)*
