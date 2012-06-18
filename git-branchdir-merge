@@ -39,5 +39,5 @@ fi
 if ! branchdir_exists $sourcebranch; then
     die "source branchdir ($sourcebranch) not registered"
 fi
-git merge --no-ff -m "Merge branch '$sourcebranch'." $sourcebranch "$@"
+git merge --log --no-ff $sourcebranch "$@"
 [ -n "$OPT_DELETE" ] && git branchdir delete $sourcebranch
