@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+
+set -o pipefail
+set -o errexit
+
+export GIT_BRANCHDIR_DIR=$(dirname $0)
+source "$GIT_BRANCHDIR_DIR/git-branchdir-common"
+
+OPTIONS_SPEC="\
+git-branchdir move [<oldbranch>] <newbranch>
+--
+h,help  show the help
+"
+source "$GIT_CORE_DIR/git-sh-setup"
+
+while [ $# -gt 0 ]; do
+    OPT="$1"
+    shift
+    case $OPT in
+        --)
+            break
+            ;;
+    esac
+done
+
+case $# in
+    2)  oldbranch="$1"
+        newbranch="$2"
+        ;;
+    1)  oldbranch="$(current_branch)"
+        newbranch="$1"
+        ;;
+    0)  die "Missing required argument" ;;
+    *)  die "Too many arguments" ;;
+esac
+if ! branchdir_exists $oldbranch; then
+    die "old branchdir ($oldbranch) does not exist"
+fi
+if branchdir_exists $newbranch; then
+    die "new branchdir ($newbranch) already exists"
+fi
+git branch -m "$oldbranch" "$newbranch"
+mv "$(branchdir_path $oldbranch)" "$(branchdir_path $newbranch)"
+cd "$(branchdir_path $newbranch)"
+git checkout -f "$newbranch"
+unregister_branchdir $oldbranch
+register_branchdir $newbranch

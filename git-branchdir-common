@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+
+export GIT_BRANCHDIR_DIR=$(dirname $0)
+export GIT_CORE_DIR=$(git --exec-path)
+
+current_branch(){
+    git branch | grep ^\* | sed 's/^\* //'
+}
+
+branchdir_exists() {
+    local branchname="$1"
+    git branchdir list | grep -q -P "^$branchname$"
+    return $?
+}
+
+register_branchdir() {
+    local branchname="$1"
+    git config --add branchdir.branch $branchname
+}
+
+unregister_branchdir() {
+    local branchname="$1"
+    git config --unset branchdir.branch ^$branchname$
+}
+
+repo_basedir() {
+    git rev-parse --show-toplevel
+}
+
+branchdir_basedir() {
+    if [ $# -eq 0 ]; then
+        git config branchdir.base
+    else
+        git config --add branchdir.base "$1"
+    fi
+}
+
+branchdir_path() {
+    local branchname="$1"
+    if [ "$branchname" == "master" ]; then
+        echo "$(branchdir_basedir)"
+    else
+        echo "$(branchdir_basedir)-$branchname"
+    fi
+}

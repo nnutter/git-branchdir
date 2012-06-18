@@ -3,228 +3,49 @@
 set -o pipefail
 set -o errexit
 
-if [ $# -eq 0 ]; then
-    set -- -h
-fi
+export GIT_BRANCHDIR_DIR=$(dirname $0)
+source "$GIT_BRANCHDIR_DIR/git-branchdir-common"
 
-# git branch --help:
-# git branch [--color[=<when>] | --no-color] [-r | -a]
-#        [--list] [-v [--abbrev=<length> | --no-abbrev]]
-#        [(--merged | --no-merged | --contains) [<commit>]] [<pattern>...]
-# git branch [--set-upstream | --track | --no-track] [-l] [-f] <branchname> [<start-point>]
-# git branch (-m | -M) [<oldbranch>] <newbranch>
-# git branch (-d | -D) [-r] <branchname>...
-# git branch --edit-description [<branchname>]
+USAGE="\
+Usage: git branchdir <subcommand>
 
-OPTIONS_SPEC="\
-git-branchdir list
-git-branchdir upbase
-git-branchdir merge [-d] <sourcebranch>
-git-branchdir publish [-d] [<sourcebranch>] <targetbranch>
-git-branchdir move [<oldbranch>] <newbranch>
-git-branchdir delete <branchname>
-git-branchdir <branchname> [<start-point>]
---
-h,help  show the help
-d       delete the branchdir after
-debug   enable debug messages
-"
-source "$(git --exec-path)/git-sh-setup"
+Available subcommands are:
+   new
+   list
+   merge
+   publish
+   move
+   delete
+   path
 
-ACTION=new
-DEBUG=
-OPT_DELETE=
+Try 'git branchdir <subcommand> --help' for details."
+usage() {
+    echo "$USAGE"
+}
 
-while [ $# -gt 0 ]; do
-    opt="$1"
+main() {
+    SUBCOMMAND="$1"
     shift
-    case "$opt" in
-        --debug) DEBUG=1 ;;
-        -d) OPT_DELETE=1 ;;
-        --) break ;;
-        *) usage ;;
+
+    case $SUBCOMMAND in
+        new|list|merge|publish|move|delete|path)
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            usage
+            exit 1
+            ;;
     esac
-done
 
-case $1 in
-    list) ACTION=list; shift ;;
-    upbase) ACTION=upbase; shift ;;
-    merge) ACTION=merge; shift ;;
-    publish) ACTION=publish; shift ;;
-    move) ACTION=move; shift ;;
-    delete) ACTION=delete; shift ;;
-esac
-
-if [ -n "$DEBUG" ]; then
-    echo "Arguments: $*"
-fi
-
-current_branch(){
-    git branch | grep ^\* | sed 's/^\* //'
-}
-
-repo_basedir() {
-    git rev-parse --show-toplevel
-}
-
-branchdir_basedir() {
-    if [ $# -eq 0 ]; then
-        git config branchdir.base
+    SUBCOMMAND_FILE="$GIT_BRANCHDIR_DIR/git-branchdir-$SUBCOMMAND"
+    if [ ! -e "$SUBCOMMAND_FILE" ]; then
+        usage
     else
-        git config --add branchdir.base "$1"
+        exec "$SUBCOMMAND_FILE" "$@"
     fi
 }
 
-branchdir_path() {
-    branchname="$1"
-    if [ "$branchname" == "master" ]; then
-        echo "$(branchdir_basedir)"
-    else
-        echo "$(branchdir_basedir)-${branchname//\//-}"
-    fi
-}
-
-register_branchdir() {
-    branchname="$1"
-    git config --add branchdir.branch $branchname
-}
-
-unregister_branchdir() {
-    branchname="$1"
-    git config --unset branchdir.branch ^$branchname$
-}
-
-branchdir_list() {
-    git config --get-all branchdir.branch
-}
-
-branchdir_exists() {
-    branchname="$1"
-    branchdir_list | grep -q -P "^$branchname$"
-    return $?
-}
-
-branchdir_upbase() {
-    git pull --rebase
-}
-
-branchdir_merge() {
-    sourcebranch="$1"
-    if ! branchdir_exists $sourcebranch; then
-        die "source branchdir ($sourcebranch) does not exist"
-    fi
-    git merge --no-ff $sourcebranch
-}
-
-branchdir_publish() {
-    sourcebranch="$1"
-    targetbranch="$2"
-    if ! branchdir_exists $sourcebranch; then
-        die "source branchdir ($sourcebranch) does not exist"
-    fi
-    if ! branchdir_exists $targetbranch; then
-        die "target branchdir ($targetbranch) does not exist"
-    fi
-    cd "$(branchdir_path $targetbranch)"
-    branchdir_merge $sourcebranch
-}
-
-branchdir_delete() {
-    branchname="$1"
-    if ! branchdir_exists $branchname; then
-        die "branchdir ($branchname) does not exist"
-    fi
-    cd "$(branchdir_basedir)"
-    git branch -d "$branchname"
-    unregister_branchdir $branchname
-    rm -rf "$(branchdir_path $branchname)"
-}
-
-branchdir_move() {
-    oldbranch="$1"
-    newbranch="$2"
-    if ! branchdir_exists $oldbranch; then
-        die "old branchdir ($oldbranch) does not exist"
-    fi
-    git branch -m "$oldbranch" "$newbranch"
-    mv "$(branchdir_path $oldbranch)" "$(branchdir_path $newbranch)"
-    unregister_branchdir $oldbranch
-    register_branchdir $newbranch
-}
-
-branchdir_new() {
-    branchname="$1"
-    startpoint="$2"
-    if branchdir_exists $branchname; then
-        die "branchdir ($branchname) already exists"
-    fi
-    git branch "$branchname" "$startpoint"
-    git-new-workdir "$(branchdir_basedir)" "$(branchdir_path $branchname)" "$branchname"
-    register_branchdir $branchname
-    echo "New branchdir: $(branchdir_path $branchname)"
-}
-
-case "$ACTION" in
-    list)
-        branchdir_list
-        ;;
-    upbase)
-        branchdir_upbase
-        ;;
-    merge)
-        case $# in
-            1) sourcebranch="$1" ;;
-            *) usage ;;
-        esac
-        branchdir_merge $sourcebranch
-        [ -n "$OPT_DELETE" ] && branchdir_delete $sourcebranch
-        ;;
-    publish)
-        case $# in
-            2) sourcebranch="$1"; targetbranch="$2" ;;
-            1) sourcebranch="$(current_branch)"; targetbranch="$1" ;;
-            0) sourcebranch="$(current_branch)"; targetbranch="master" ;;
-            *) usage ;;
-        esac
-        branchdir_publish $sourcebranch $targetbranch
-        [ -n "$OPT_DELETE" ] && branchdir_delete $sourcebranch
-        ;;
-    delete)
-        case $# in
-            1) branchname="$1" ;;
-            *) usage ;;
-        esac
-        branchdir_delete "$branchname"
-        ;;
-    move)
-        case $# in
-            2)  oldbranch="$1"
-                newbranch="$2"
-                ;;
-            1)  oldbranch="$(current_branch)"
-                newbranch="$1"
-                ;;
-            0)  die "Missing required argument" ;;
-            *)  die "Too many arguments" ;;
-        esac
-        branchdir_move "$oldbranch" "$newbranch"
-        ;;
-    new)
-        case $# in
-            2)  branchname="$1"
-                startpoint="$2"
-                ;;
-            1)  branchname="$1"
-                startpoint="HEAD"
-                ;;
-            0)  die "Missing required argument" ;;
-            *)  die "Too many arguments" ;;
-        esac
-        if [ -z "$(branchdir_basedir)" ]; then
-            branchdir_basedir "$(repo_basedir)"
-        fi
-        if ! branchdir_exists $branchname; then
-            branchdir_new "$branchname" "$startpoint"
-        fi
-        ;;
-esac
+main $@

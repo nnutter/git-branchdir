@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+
+set -o pipefail
+set -o errexit
+
+export GIT_BRANCHDIR_DIR=$(dirname $0)
+source "$GIT_BRANCHDIR_DIR/git-branchdir-common"
+
+if [ $# -eq 0 ]; then
+    set -- -h
+fi
+
+OPTIONS_SPEC="\
+git-branchdir merge [-d] <sourcebranch>
+--
+h,help  show the help
+d       delete the branchdir after
+"
+source "$GIT_CORE_DIR/git-sh-setup"
+
+while [ $# -gt 0 ]; do
+    OPT="$1"
+    shift
+    case $OPT in
+        --)
+            break
+            ;;
+        -d)
+            OPT_DELETE=1
+            ;;
+    esac
+done
+
+sourcebranch="$1"
+shift
+if [ -z "$sourcebranch" ]; then
+    die "must specify source branch as argument"
+fi
+if ! branchdir_exists $sourcebranch; then
+    die "source branchdir ($sourcebranch) not registered"
+fi
+git merge --no-ff -m "Merge branch '$sourcebranch'." $sourcebranch "$@"
+[ -n "$OPT_DELETE" ] && git branchdir delete $sourcebranch

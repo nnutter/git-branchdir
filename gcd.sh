@@ -7,18 +7,7 @@ gcd_complete() {
 }
 complete -F gcd_complete gcd
 
-branchdir_basedir() {
-    git config branchdir.base
-}
-
-branchdir_path() {
-    branchname="$1"
-    if [ "$branchname" == "master" ]; then
-        echo "$(branchdir_basedir)"
-    else
-        echo "$(branchdir_basedir)-${branchname//\//-}"
-    fi
-}
+source git-branchdir-common.sh
 
 gcd() {
     if [ $# -eq 0 ]; then

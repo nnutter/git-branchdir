@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+
+set -o pipefail
+set -o errexit
+
+export GIT_BRANCHDIR_DIR=$(dirname $0)
+source "$GIT_BRANCHDIR_DIR/git-branchdir-common"
+
+OPTIONS_SPEC="\
+git-branchdir path
+--
+h,help  show the help
+"
+source "$GIT_CORE_DIR/git-sh-setup"
+
+while [ $# -gt 0 ]; do
+    OPT="$1"
+    shift
+    case $OPT in
+        --)
+            break
+            ;;
+    esac
+done
+
+branchname="$1"
+shift
+if [ -z "$branchname" ]; then
+    die "must specify branch name as argument"
+fi
+if ! branchdir_exists $branchname; then
+    die "branchdir ($branchname) not registered"
+fi
+branchdir_path $branchname

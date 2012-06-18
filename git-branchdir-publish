@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+
+set -o pipefail
+set -o errexit
+
+export GIT_BRANCHDIR_DIR=$(dirname $0)
+source "$GIT_BRANCHDIR_DIR/git-branchdir-common"
+
+OPTIONS_SPEC="\
+git-branchdir publish [-d] [<sourcebranch>] [<targetbranch>]
+--
+h,help  show the help
+d       delete the branchdir after
+"
+source "$GIT_CORE_DIR/git-sh-setup"
+
+while [ $# -gt 0 ]; do
+    OPT="$1"
+    shift
+    case $OPT in
+        --)
+            break
+            ;;
+        -d)
+            OPT_DELETE=1
+            ;;
+    esac
+done
+
+case $# in
+    2) sourcebranch="$1"; targetbranch="$2" ;;
+    1) sourcebranch="$(current_branch)"; targetbranch="$1" ;;
+    0) sourcebranch="$(current_branch)"; targetbranch="$(git config branch.master.merge)" ;;
+esac
+if ! branchdir_exists $sourcebranch; then
+    die "source branchdir ($sourcebranch) does not exist"
+fi
+if ! branchdir_exists $targetbranch; then
+    die "target branchdir ($targetbranch) does not exist"
+fi
+cd "$(branchdir_path $targetbranch)"
+git branchdir merge $sourcebranch "$@"
+[ -n "$OPT_DELETE" ] && branchdir_delete $sourcebranch

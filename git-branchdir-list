@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+
+set -o pipefail
+set -o errexit
+
+export GIT_BRANCHDIR_DIR=$(dirname $0)
+source "$GIT_BRANCHDIR_DIR/git-branchdir-common"
+
+OPTIONS_SPEC="\
+git-branchdir list
+--
+h,help  show the help
+"
+source "$GIT_CORE_DIR/git-sh-setup"
+
+while [ $# -gt 0 ]; do
+    OPT="$1"
+    shift
+    case $OPT in
+        --)
+            break
+            ;;
+    esac
+done
+
+if [ $# -gt 0 ]; then
+    usage
+    exit 1
+fi
+
+git config --get-all branchdir.branch

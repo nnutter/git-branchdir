@@ -2,9 +2,18 @@
 
 NAME = git-branchdir
 GIT_CORE = $(shell git --exec-path)
-BIN = $(GIT_CORE)/$(NAME)
+
+all:
+	@echo "\`make install\` to install."
+	@echo "\`make uninstall\` to remove."
 
 install:
-	cp gcd.sh ${HOME}/.bashrc.d/
-	cp $(NAME) $(BIN)
-	chmod 0755 $(BIN)
+	cp $(NAME)* $(GIT_CORE)/
+	chmod 0755 $(GIT_CORE)/$(NAME)*
+
+uninstall:
+	rm -f $(GIT_CORE)/$(NAME)*
+
+reinstall:
+	$(MAKE) uninstall
+	$(MAKE) install

@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+
+set -o pipefail
+set -o errexit
+
+export GIT_BRANCHDIR_DIR=$(dirname $0)
+source "$GIT_BRANCHDIR_DIR/git-branchdir-common"
+
+OPTIONS_SPEC="\
+git-branchdir new <branchname>
+--
+h,help  show the help
+"
+source "$GIT_CORE_DIR/git-sh-setup"
+
+while [ $# -gt 0 ]; do
+    OPT="$1"
+    shift
+    case $OPT in
+        --)
+            break
+            ;;
+    esac
+done
+
+case $# in
+    2)  branchname="$1"
+        startpoint="$2"
+        ;;
+    1)  branchname="$1"
+        startpoint="HEAD"
+        ;;
+    0)  die "Missing required argument" ;;
+    *)  die "Too many arguments" ;;
+esac
+if [ -z "$(branchdir_basedir)" ]; then
+    branchdir_basedir "$(repo_basedir)"
+    register_branchdir master
+fi
+if branchdir_exists $branchname; then
+    die "branchdir ($branchname) already exists"
+fi
+git branch "$branchname" "$startpoint"
+git-new-workdir "$(branchdir_basedir)" "$(branchdir_path $branchname)" "$branchname"
+register_branchdir $branchname
+echo "New branchdir: $(branchdir_path $branchname)"

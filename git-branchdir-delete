@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+
+set -o pipefail
+set -o errexit
+
+export GIT_BRANCHDIR_DIR=$(dirname $0)
+source "$GIT_BRANCHDIR_DIR/git-branchdir-common"
+
+OPTIONS_SPEC="\
+git-branchdir delete <branchname>
+--
+h,help  show the help
+f,force force delete even if branch is not fully merged
+"
+source "$GIT_CORE_DIR/git-sh-setup"
+
+while [ $# -gt 0 ]; do
+    OPT="$1"
+    shift
+    case $OPT in
+        -f)
+            OPT_FORCE=1;
+            ;;
+        --)
+            break
+            ;;
+    esac
+done
+
+case $# in
+    1) branchname="$1" ;;
+    *) usage ;;
+esac
+if ! branchdir_exists $branchname; then
+    die "branchdir ($branchname) does not exist"
+fi
+cd "$(branchdir_path $branchname)"
+if git status -s | grep -q ^??; then
+    die "you have untracked changes in $branchname"
+fi
+if git status -s | grep -v ^?? | grep -q .; then
+    die "you have uncommitted changes in $branchname"
+fi
+cd "$(branchdir_basedir)"
+if [ -n "$OPT_FORCE" ]; then
+    git branch -D "$branchname"
+else
+    git branch -d "$branchname"
+fi
+unregister_branchdir $branchname
+rm -rf "$(branchdir_path $branchname)"
