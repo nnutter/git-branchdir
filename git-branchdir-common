@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-export GIT_BRANCHDIR_DIR=$(dirname $0)
 export GIT_CORE_DIR=$(git --exec-path)
 
 current_branch(){
