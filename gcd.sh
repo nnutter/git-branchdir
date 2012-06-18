@@ -7,7 +7,7 @@ gcd_complete() {
 }
 complete -F gcd_complete gcd
 
-source git-branchdir-common.sh
+source git-branchdir-common
 
 gcd() {
     if [ $# -eq 0 ]; then
