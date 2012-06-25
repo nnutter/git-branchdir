@@ -7,9 +7,8 @@ gcd_complete() {
 }
 complete -F gcd_complete gcd
 
-source git-branchdir-common
-
 gcd() {
+    source "$(git --exec-path)/git-branchdir-common"
     if [ $# -eq 0 ]; then
         cd "$(branchdir_basedir)"
     else
