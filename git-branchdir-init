@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+
+set -o pipefail
+set -o errexit
+
+export GIT_BRANCHDIR_DIR=$(dirname $0)
+source "$GIT_BRANCHDIR_DIR/git-branchdir-common"
+
+OPTIONS_SPEC="\
+git-branchdir init
+--
+h,help  show the help
+"
+source "$GIT_CORE_DIR/git-sh-setup"
+
+while [ $# -gt 0 ]; do
+    OPT="$1"
+    shift
+    case $OPT in
+        --)
+            break
+            ;;
+    esac
+done
+
+if [ $# -gt 0 ]; then
+    usage
+    exit 1
+fi
+
+default=$(pwd)
+echo "Where should branchdirs be created in? [$default] "
+read basedir
+[ -z "$basedir" ] && basedir="$default"
+
+default='-'
+echo "What delimiter should be used for branchdirs? [$default] "
+read delimiter
+[ -z "$delimiter" ] && delimiter="$default"
+
+default=$(git rev-parse --show-toplevel)
+echo "Where is the primary repo? [$default] "
+read base
+[ -z "$base" ] && base="$default"
+
+git config --replace-all branchdir.basedir "$basedir"
+git config --replace-all branchdir.delimiter "$delimiter"
+git config --replace-all branchdir.base "$base"

@@ -2,7 +2,7 @@
 
 _git_branchdir ()
 {
-    local subcommands="list path new move delete merge publish"
+    local subcommands="init list path new move delete merge publish"
     local subcommand="$(__git_find_on_cmdline "$subcommands")"
     if [ -z "$subcommand" ]; then
         __gitcomp "$subcommands"

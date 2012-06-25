@@ -10,6 +10,7 @@ USAGE="\
 Usage: git branchdir <subcommand>
 
 Available subcommands are:
+   init
    new
    list
    merge
@@ -28,7 +29,7 @@ main() {
     shift
 
     case $SUBCOMMAND in
-        new|list|merge|publish|move|delete|path)
+        init|new|list|merge|publish|move|delete|path)
             ;;
         -h|--help)
             usage
