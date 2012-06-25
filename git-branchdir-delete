@@ -34,17 +34,17 @@ esac
 if ! branchdir_exists $branchname; then
     die "branchdir ($branchname) does not exist"
 fi
-cd "$(branchdir_path $branchname)"
-if git status -s | grep -q ^??; then
-    die "you have untracked changes in $branchname"
-fi
-if git status -s | grep -v ^?? | grep -q .; then
-    die "you have uncommitted changes in $branchname"
-fi
-cd "$(branchdir_basedir)"
 if [ -n "$OPT_FORCE" ]; then
     git branch -D "$branchname"
 else
+    cd "$(branchdir_path $branchname)"
+    if git status -s | grep -q ^??; then
+        die "you have untracked changes in $branchname"
+    fi
+    if git status -s | grep -v ^?? | grep -q .; then
+        die "you have uncommitted changes in $branchname"
+    fi
+    cd "$(branchdir_basedir)"
     git branch -d "$branchname"
 fi
 unregister_branchdir $branchname
